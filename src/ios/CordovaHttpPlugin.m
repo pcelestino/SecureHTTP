@@ -9,7 +9,6 @@
 
 @end
 
-
 @implementation CordovaHttpPlugin {
     AFHTTPRequestSerializer *requestSerializer;
 }
@@ -19,7 +18,6 @@
 }
 
 - (void)setRequestHeaders:(NSDictionary*)headers {
-    [HttpManager sharedClient].requestSerializer = [AFHTTPRequestSerializer serializer];
     [requestSerializer.HTTPRequestHeaders enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
         [[HttpManager sharedClient].requestSerializer setValue:obj forHTTPHeaderField:key];
     }];
@@ -39,7 +37,7 @@
 }
 
 - (void)setHeader:(CDVInvokedUrlCommand*)command {
-    NSString *header = [command.arguments objectAtIndex:0];
+	NSString *header = [command.arguments objectAtIndex:0];
     NSString *value = [command.arguments objectAtIndex:1];
     
     [requestSerializer setValue:value forHTTPHeaderField: header];
@@ -49,7 +47,8 @@
 }
 
 - (void)enableSSLPinning:(CDVInvokedUrlCommand*)command {
-    bool enable = [[command.arguments objectAtIndex:0] boolValue];
+	bool enable = [[command.arguments objectAtIndex:0] boolValue];
+
     if (enable) {
         [HttpManager sharedClient].securityPolicy = [AFSecurityPolicy policyWithPinningMode:AFSSLPinningModeCertificate];
         [HttpManager sharedClient].securityPolicy.validatesCertificateChain = NO;
@@ -62,8 +61,8 @@
 }
 
 - (void)acceptAllCerts:(CDVInvokedUrlCommand*)command {
-    CDVPluginResult* pluginResult = nil;
-    bool allow = [[command.arguments objectAtIndex:0] boolValue];
+	CDVPluginResult* pluginResult = nil;
+	bool allow = [[command.arguments objectAtIndex:0] boolValue];
     
     [HttpManager sharedClient].securityPolicy.allowInvalidCertificates = allow;
     
@@ -72,140 +71,156 @@
 }
 
 - (void)post:(CDVInvokedUrlCommand*)command {
-   HttpManager *manager = [HttpManager sharedClient];
-   NSString *url = [command.arguments objectAtIndex:0];
-   NSDictionary *parameters = [command.arguments objectAtIndex:1];
-   NSDictionary *headers = [command.arguments objectAtIndex:2];
-   [self setRequestHeaders: headers];
+	HttpManager *manager = [HttpManager sharedClient];
+	NSString *url = [command.arguments objectAtIndex:0];
+	NSDictionary *parameters = [command.arguments objectAtIndex:1];
+	NSDictionary *headers = [command.arguments objectAtIndex:2];
+
+	CordovaHttpPlugin* __weak weakSelf = self;
+
+	manager.requestSerializer = [AFJSONRequestSerializer serializer];
+	manager.responseSerializer = [TextResponseSerializer serializer];
+
+	[self setRequestHeaders: headers];
    
-   CordovaHttpPlugin* __weak weakSelf = self;
-   manager.responseSerializer = [TextResponseSerializer serializer];
-   [manager POST:url parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject) {
-      NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
-      [dictionary setObject:[NSNumber numberWithInt:operation.response.statusCode] forKey:@"status"];
-      [dictionary setObject:responseObject forKey:@"data"];
-      CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:dictionary];
-      [weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-   } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-      NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
-      [dictionary setObject:[NSNumber numberWithInt:operation.response.statusCode] forKey:@"status"];
-      @try {
-           [dictionary setObject:[operation responseObject] forKey:@"error"];
-      }
-      @catch (NSException *exception) {
-           [dictionary setObject:[error localizedDescription] forKey:@"error"];
-      }
-      CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:dictionary];
-      [weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-   }];
+	[manager POST:url parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject) {
+		NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
+		[dictionary setObject:[NSNumber numberWithInt:operation.response.statusCode] forKey:@"status"];
+		[dictionary setObject:responseObject forKey:@"data"];
+		CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:dictionary];
+		[weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+	} failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+		NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
+		[dictionary setObject:[NSNumber numberWithInt:operation.response.statusCode] forKey:@"status"];
+		@try {
+			[dictionary setObject:[operation responseObject] forKey:@"error"];
+		}
+		@catch (NSException *exception) {
+			[dictionary setObject:[error localizedDescription] forKey:@"error"];
+		}
+		CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:dictionary];
+		[weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+	}];
 }
 
 - (void)get:(CDVInvokedUrlCommand*)command {
-   HttpManager *manager = [HttpManager sharedClient];
-   NSString *url = [command.arguments objectAtIndex:0];
-   NSDictionary *parameters = [command.arguments objectAtIndex:1];
-   NSDictionary *headers = [command.arguments objectAtIndex:2];
-   [self setRequestHeaders: headers];
+	HttpManager *manager = [HttpManager sharedClient];
+	NSString *url = [command.arguments objectAtIndex:0];
+	NSDictionary *parameters = [command.arguments objectAtIndex:1];
+	NSDictionary *headers = [command.arguments objectAtIndex:2];
+
+	CordovaHttpPlugin* __weak weakSelf = self;
+
+	manager.requestSerializer = [AFHTTPRequestSerializer serializer];
+	manager.responseSerializer = [TextResponseSerializer serializer];
+
+	[self setRequestHeaders: headers];
    
-   CordovaHttpPlugin* __weak weakSelf = self;
-   
-   manager.responseSerializer = [TextResponseSerializer serializer];
-   [manager GET:url parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject) {
-      NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
-      [dictionary setObject:[NSNumber numberWithInt:operation.response.statusCode] forKey:@"status"];
-      [dictionary setObject:responseObject forKey:@"data"];
-      CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:dictionary];
-      [weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-   } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-      NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
-      [dictionary setObject:[NSNumber numberWithInt:operation.response.statusCode] forKey:@"status"];
-      @try {
-           [dictionary setObject:[operation responseObject] forKey:@"error"];
-      }
-      @catch (NSException *exception) {
-           [dictionary setObject:[error localizedDescription] forKey:@"error"];
-      }
-      CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:dictionary];
-      [weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-   }];
+	[manager GET:url parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject) {
+		NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
+		[dictionary setObject:[NSNumber numberWithInt:operation.response.statusCode] forKey:@"status"];
+		[dictionary setObject:responseObject forKey:@"data"];
+		CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:dictionary];
+		[weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+	} failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+		NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
+		[dictionary setObject:[NSNumber numberWithInt:operation.response.statusCode] forKey:@"status"];
+		@try {
+			[dictionary setObject:[operation responseObject] forKey:@"error"];
+		}
+		@catch (NSException *exception) {
+			[dictionary setObject:[error localizedDescription] forKey:@"error"];
+		}
+		CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:dictionary];
+		[weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+	}];
 }
 
 - (void)put:(CDVInvokedUrlCommand*)command {
-   HttpManager *manager = [HttpManager sharedClient];
-   NSString *url = [command.arguments objectAtIndex:0];
-   NSDictionary *parameters = [command.arguments objectAtIndex:1];
-   NSDictionary *headers = [command.arguments objectAtIndex:2];
-   [self setRequestHeaders: headers];
+	HttpManager *manager = [HttpManager sharedClient];
+	NSString *url = [command.arguments objectAtIndex:0];
+	NSDictionary *parameters = [command.arguments objectAtIndex:1];
+	NSDictionary *headers = [command.arguments objectAtIndex:2];
    
-   CordovaHttpPlugin* __weak weakSelf = self;
-   
-   manager.responseSerializer = [TextResponseSerializer serializer];
-   [manager PUT:url parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject) {
-      NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
-      [dictionary setObject:[NSNumber numberWithInt:operation.response.statusCode] forKey:@"status"];
-      [dictionary setObject:responseObject forKey:@"data"];
-      CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:dictionary];
-      [weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-   } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-      NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
-      [dictionary setObject:[NSNumber numberWithInt:operation.response.statusCode] forKey:@"status"];
-      @try {
-           [dictionary setObject:[operation responseObject] forKey:@"error"];
-      }
-      @catch (NSException *exception) {
-           [dictionary setObject:[error localizedDescription] forKey:@"error"];
-      }
-      CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:dictionary];
-      [weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-   }];
+	CordovaHttpPlugin* __weak weakSelf = self;
+
+	manager.requestSerializer = [AFJSONRequestSerializer serializer];
+	manager.responseSerializer = [TextResponseSerializer serializer];
+
+	[self setRequestHeaders: headers];
+
+	[manager PUT:url parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject) {
+		NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
+		[dictionary setObject:[NSNumber numberWithInt:operation.response.statusCode] forKey:@"status"];
+		[dictionary setObject:responseObject forKey:@"data"];
+		CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:dictionary];
+		[weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+	} failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+		NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
+		[dictionary setObject:[NSNumber numberWithInt:operation.response.statusCode] forKey:@"status"];
+		@try {
+			[dictionary setObject:[operation responseObject] forKey:@"error"];
+		}
+		@catch (NSException *exception) {
+			[dictionary setObject:[error localizedDescription] forKey:@"error"];
+		}
+		CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:dictionary];
+		[weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+	}];
 }
 
 - (void)delete:(CDVInvokedUrlCommand*)command {
-   HttpManager *manager = [HttpManager sharedClient];
-   NSString *url = [command.arguments objectAtIndex:0];
-   NSDictionary *parameters = [command.arguments objectAtIndex:1];
-   NSDictionary *headers = [command.arguments objectAtIndex:2];
-   [self setRequestHeaders: headers];
+	HttpManager *manager = [HttpManager sharedClient];
+	NSString *url = [command.arguments objectAtIndex:0];
+	NSDictionary *parameters = [command.arguments objectAtIndex:1];
+	NSDictionary *headers = [command.arguments objectAtIndex:2];
    
-   CordovaHttpPlugin* __weak weakSelf = self;
-   
-   manager.responseSerializer = [TextResponseSerializer serializer];
-   [manager DELETE:url parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject) {
-      NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
-      [dictionary setObject:[NSNumber numberWithInt:operation.response.statusCode] forKey:@"status"];
-      [dictionary setObject:responseObject forKey:@"data"];
-      CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:dictionary];
-      [weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-   } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-      NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
-      [dictionary setObject:[NSNumber numberWithInt:operation.response.statusCode] forKey:@"status"];
-      @try {
-           [dictionary setObject:[operation responseObject] forKey:@"error"];
-      }
-      @catch (NSException *exception) {
-           [dictionary setObject:[error localizedDescription] forKey:@"error"];
-      }
-      CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:dictionary];
-      [weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-   }];
+	CordovaHttpPlugin* __weak weakSelf = self;
+
+	manager.requestSerializer = [AFHTTPRequestSerializer serializer];
+	manager.responseSerializer = [TextResponseSerializer serializer];
+
+	[self setRequestHeaders: headers];
+
+	[manager DELETE:url parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject) {
+		NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
+		[dictionary setObject:[NSNumber numberWithInt:operation.response.statusCode] forKey:@"status"];
+		[dictionary setObject:responseObject forKey:@"data"];
+		CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:dictionary];
+		[weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+	} failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+		NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
+		[dictionary setObject:[NSNumber numberWithInt:operation.response.statusCode] forKey:@"status"];
+		@try {
+			[dictionary setObject:[operation responseObject] forKey:@"error"];
+		}
+		@catch (NSException *exception) {
+			[dictionary setObject:[error localizedDescription] forKey:@"error"];
+		}
+		CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:dictionary];
+		[weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+	}];
 }
 
 - (void)uploadFile:(CDVInvokedUrlCommand*)command {
-    HttpManager *manager = [HttpManager sharedClient];
+	HttpManager *manager = [HttpManager sharedClient];
     NSString *url = [command.arguments objectAtIndex:0];
     NSDictionary *parameters = [command.arguments objectAtIndex:1];
     NSDictionary *headers = [command.arguments objectAtIndex:2];
     NSString *filePath = [command.arguments objectAtIndex: 3];
     NSString *name = [command.arguments objectAtIndex: 4];
     
+	CordovaHttpPlugin* __weak weakSelf = self;
+
     NSString *filePathFormatted = [filePath stringByReplacingOccurrencesOfString:@"file:///" withString:@""];
     
     NSURL *fileURL = [NSURL fileURLWithPath: filePathFormatted];
-    
-    [self setRequestHeaders: headers];
-    
-    CordovaHttpPlugin* __weak weakSelf = self;
-    manager.responseSerializer = [TextResponseSerializer serializer];
+
+	manager.requestSerializer = [AFHTTPRequestSerializer serializer];
+	manager.responseSerializer = [TextResponseSerializer serializer];
+
+	[self setRequestHeaders: headers];
+
     [manager POST:url parameters:parameters constructingBodyWithBlock:^(id<AFMultipartFormData> formData) {
         NSError *error;
         [formData appendPartWithFileURL:fileURL name:name error:&error];
@@ -239,16 +254,19 @@
 
 
 - (void)downloadFile:(CDVInvokedUrlCommand*)command {
-    HttpManager *manager = [HttpManager sharedClient];
+	HttpManager *manager = [HttpManager sharedClient];
     NSString *url = [command.arguments objectAtIndex:0];
     NSDictionary *parameters = [command.arguments objectAtIndex:1];
     NSDictionary *headers = [command.arguments objectAtIndex:2];
     NSString *filePath = [command.arguments objectAtIndex: 3];
    
+	CordovaHttpPlugin* __weak weakSelf = self;
+
+	manager.requestSerializer = [AFHTTPRequestSerializer serializer];
+	manager.responseSerializer = [AFHTTPResponseSerializer serializer];
+
     [self setRequestHeaders: headers];
     
-    CordovaHttpPlugin* __weak weakSelf = self;
-    manager.responseSerializer = [AFHTTPResponseSerializer serializer];
     [manager GET:url parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject) {
         /*
          *
