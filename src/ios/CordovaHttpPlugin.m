@@ -115,6 +115,8 @@
 	manager.responseSerializer = [TextResponseSerializer serializer];
 
 	[self setRequestHeaders: headers];
+
+    parameters = (parameters.count > 0) ? parameters : nil;
    
 	[manager GET:url parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject) {
 		NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
